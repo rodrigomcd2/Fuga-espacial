@@ -1,7 +1,4 @@
-# jogo-espacial
+# jogo espacial 
 
-## install
-pip install pygame
-
-### run
-run file main.py
+## enredo
+um grupo de prisioneiros escapou, então o objetivos deles é correr o mais distante possivel da prisão
