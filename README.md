@@ -1,5 +1,5 @@
 # jogo espacial 
-um minigame em pyton para iniciantes
+um minigame em python para iniciantes
 
 ## enredo
 um grupo de prisioneiros escapou, então o objetivos deles é correr o mais distante possivel da prisão
