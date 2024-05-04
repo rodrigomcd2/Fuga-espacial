@@ -44,6 +44,27 @@ class Hazard:
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
+# Diferencia a classe de hazards
+class Satellite(Hazard):
+    def __init__(self, x, y):
+        super().__init__("Images/satelite.png", x, y)
+
+class Meteor(Hazard):
+    def __init__(self, x, y):
+        super().__init__("Images/meteoros.png", x, y)
+
+class BuracoNegro(Hazard):
+    def __init__(self, x, y):
+        super().__init__("Images/buracoNegro.png", x, y)
+
+class nave(Hazard):
+    def __init__(self, x, y):
+        super().__init__("Images/nave.png", x, y)
+
+class planeta(Hazard):
+    def __init__(self, x, y):
+        super().__init__("Images/planeta.png", x, y)
+
 class Game:
     def __init__(self, size, fullscreen):
         pygame.init()
@@ -66,6 +87,7 @@ class Game:
         self.velocity_hazard = 5
         self.hazard_delay = 0
         self.delay_timer = 0
+        self.current_music = None  # Variável para armazenar o nome do arquivo de música atual
         self.play_soundtrack()  # Chama o método para iniciar a trilha sonora
 
     def handle_events(self):
@@ -99,7 +121,9 @@ class Game:
             self.delay_timer = 0
             h_x = random.randrange(125, 660)
             h_y = -500
-            self.hazards.append(Hazard("Images/satelite.png", h_x, h_y))
+            # Seleciona aleatoriamente um tipo de hazard
+            hazard_type = random.choice([Satellite, Meteor, BuracoNegro, nave, planeta])
+            self.hazards.append(hazard_type(h_x, h_y))
         
         # Atualiza a posição dos hazards e verifica colisões
         for hazard in self.hazards:
@@ -135,9 +159,10 @@ class Game:
     def play_soundtrack(self):
         #inclue a trilha sonora
         if os.path.isfile("Sounds/song.wav"):
-            pygame.mixer.music.load("Sounds/song.wav")
+            self.current_music = "Sounds/song.wav"  # Armazena o nome do arquivo de música atual
+            pygame.mixer.music.load(self.current_music)
             pygame.mixer.music.set_volume(0.5)
-            pygame.mixer.music.play(loops= -1)
+            pygame.mixer.music.play(loops=-1)
         else:
             print("Sounds/song.mp3 not found...ignoring", file=sys.stderr)
 
@@ -156,6 +181,10 @@ class Game:
         self.score = 0
         self.h_passed = 0
         self.run = True
+        # Verifica se há uma trilha sonora atual e a reinicia
+        if self.current_music:
+            pygame.mixer.music.load(self.current_music)
+            pygame.mixer.music.play(loops=-1)
 
     def loop(self):
         while self.run:
@@ -170,6 +199,7 @@ class Game:
 
 game = Game((800, 600), fullscreen=False)
 game.loop()
+
 
 
 
