@@ -1,192 +1,182 @@
 import pygame
 import time
 import random
-
+import os
+import sys
 
 class Background:
-    image = None
-    margin_left = None
-    margin_right = None
-
-    def move(self, screen, scr_height, movL_x, movL_y, movR_x, movR_y):
-            for i in range(0, 2):
-                screen.blit(self.image, (movL_x, movL_y - i * scr_height))
-                screen.blit(self.image, (movR_x, movR_y - i * scr_height))
-                screen.blit(self.margin_left, (0, movL_y - i * scr_height))
-                screen.blit(self.margin_right, (740, movR_y - i * scr_height))
-                
     def __init__(self):
-        background_fig = pygame.image.load("Images/background.png")
-        background_fig = background_fig.convert()
-        background_fig = pygame.transform.scale(background_fig, (800,602))
-        self.image = background_fig
+        self.image = pygame.image.load("Images/background.png").convert()
+        self.image = pygame.transform.scale(self.image, (800, 602))
+        self.margin_left = pygame.image.load("Images/margin_1.png").convert()
+        self.margin_left = pygame.transform.scale(self.margin_left, (60, 602))
+        self.margin_right = pygame.image.load("Images/margin_2.png").convert()
+        self.margin_right = pygame.transform.scale(self.margin_right, (60, 602))
 
-        margin_left_fig = pygame.image.load("Images/margin_1.png")
-        margin_left_fig.convert()
-        margin_left_fig = pygame.transform.scale(margin_left_fig, (60,602))
-        self.margin_left = margin_left_fig
+    def move(self, screen, scr_height, movL_y, movR_y):
+        for i in range(0, 2):
+            screen.blit(self.image, (0, movL_y - i * scr_height))
+            screen.blit(self.image, (0, movR_y - i * scr_height))
+            screen.blit(self.margin_left, (0, movL_y - i * scr_height))
+            screen.blit(self.margin_right, (740, movR_y - i * scr_height))
 
-        margin_right_fig = pygame.image.load("Images/margin_2.png")
-        margin_right_fig.convert()
-        margin_right_fig = pygame.transform.scale(margin_right_fig, (60,602))
-        self.margin_right = margin_right_fig
-
-
-    def update(self, dt):
-        pass
-    
-    def draw(self, screen):
-        screen.blit(self.image, (0,0))
-
-
-class player:
-    image = None
-    x = None
-    y = None
-
+class Player:
     def __init__(self, x, y):
-        player_fig = pygame.image.load("images/player.png")
-        player_fig.convert()
-        player_fig = pygame.transform.scale(player_fig, (90, 90))
-        self.image = player_fig
-        self.x = x
-        self.y = y 
+        self.image = pygame.image.load("Images/player.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (90, 90))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
+        self.speed = 0
 
-    def draw(self, screen, x, y):
-        screen.blit(self.image, (x,y))
+    def update(self):
+        self.rect.x += self.speed
 
-class hazard:
-    image = None
-    x = None
-    y = None
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
 
+class Hazard:
     def __init__(self, img, x, y):
-        hazard_fig = pygame.image.load(img)
-        hazard_fig.convert()
-        hazard_fig = pygame.transform.scale(hazard_fig, (130, 130))
-        self.image = hazard_fig
-        self.x = x 
-        self.y = y 
+        self.image = pygame.image.load(img).convert_alpha()
+        self.image = pygame.transform.scale(self.image, (130, 130))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = (x, y)
 
-    def draw (self, screen,x, y):
-        screen.blit(self.image, (x, y))
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
 
 class Game:
-    screen = None
-    screen_size = None
-    width = 800
-    height = 600
-    run = True
-    background = None
-    player = None
-    hazard = []
-    render_text_bateulateral = None
-    render_text_perdeu = None
-
-    DIREITA = pygame.K_RIGHT
-    ESQUERDA = pygame.K_LEFT
-    mudar_x = 0.0 
-
     def __init__(self, size, fullscreen):
         pygame.init()
-        
+        self.width, self.height = size
         if fullscreen:
             self.screen = pygame.display.set_mode((self.width, self.height), pygame.FULLSCREEN)
         else:
             self.screen = pygame.display.set_mode((self.width, self.height))
-        
-        self.screen_size = self.screen.get_size()
         pygame.mouse.set_visible(0)
         pygame.display.set_caption("Título do Seu Jogo")
+        self.clock = pygame.time.Clock()
+        self.dt = 16
+        self.background = Background()
+        self.player = Player((self.width - 56) / 2, self.height - 125)
+        self.hazards = []
+        self.run = True
+        self.score = 0
+        self.h_passed = 0
+        self.velocity_background = 10
+        self.velocity_hazard = 5
+        self.hazard_delay = 0
+        self.delay_timer = 0
+        self.play_soundtrack()  # Chama o método para iniciar a trilha sonora
 
-        my_font = pygame.font.Font("Fonts/Fonte4.ttf", 100)
-        self.render_text_bateulateral = my_font.render("VOCÊ BATEU!", 0, (255, 255, 255))
-        self.render_text_perdeu = my_font.render("GAME OVER", 0, (255, 0, 0))
-
-        
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.run = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    self.player.speed = -5
+                elif event.key == pygame.K_RIGHT:
+                    self.player.speed = 5
+            elif event.type == pygame.KEYUP:
+                if event.key == pygame.K_LEFT and self.player.speed < 0:
+                    self.player.speed = 0
+                elif event.key == pygame.K_RIGHT and self.player.speed > 0:
+                    self.player.speed = 0
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == self.ESQUERDA:
-                    self.mudar_x = -3
+    def check_collision(self):
+        for hazard in self.hazards:
+            if self.player.rect.colliderect(hazard.rect):
+                self.play_sound("Sounds/jump2.wav")  # Chama o método para tocar o som de colisão
+                return True
+        return False
 
-                if event.key == self.DIREITA:
-                    self.mudar_x = 3 
+    def update_elements(self):
+        self.background.move(self.screen, self.height, 0, 0)
+        
+        # Atraso entre a criação de hazards
+        self.delay_timer += 1
+        if self.delay_timer >= 30:
+            self.delay_timer = 0
+            h_x = random.randrange(125, 660)
+            h_y = -500
+            self.hazards.append(Hazard("Images/satelite.png", h_x, h_y))
+        
+        # Atualiza a posição dos hazards e verifica colisões
+        for hazard in self.hazards:
+            hazard.rect.y += self.velocity_hazard
+            if hazard.rect.y > self.height:
+                self.hazards.remove(hazard)
+                self.score += 10  # Incrementa a pontuação quando um hazard passa
 
-            if event.type == pygame.KEYUP:
-                if event.key == self.ESQUERDA or event.key == self.DIREITA:
-                    self.mudar_x = 0
-              
-    def elements_update(self, dt):
-        self.background.update(dt)
+        # Atualiza o número de hazards que passaram
+        self.h_passed = self.score // 10
 
-    def elements_draw(self):
-        self.background.draw(self.screen)
-    
+    def draw_elements(self):
+        self.background.move(self.screen, self.height, 0, 0)
+        for hazard in self.hazards:
+            hazard.draw(self.screen)
+
+        font = pygame.font.SysFont(None, 35)
+        passou = font.render("Passou: " + str(self.h_passed), True, (255, 255, 128))
+        score_text = font.render("Score: " + str(self.score), True, (253, 231, 32))
+        self.screen.blit(passou, (0, 50))
+        self.screen.blit(score_text, (0, 100))
+
+        self.player.update()
+        self.player.draw(self.screen)
+
+    def game_over(self):
+        my_font = pygame.font.Font("Fonts/Fonte4.ttf", 100)
+        render_text_perdeu = my_font.render("GAME OVER", 0, (255, 0, 0))
+        self.screen.blit(render_text_perdeu, (80, 200))
+        pygame.display.update()
+        time.sleep(3)
+
+    def play_soundtrack(self):
+        #inclue a trilha sonora
+        if os.path.isfile("Sounds/song.wav"):
+            pygame.mixer.music.load("Sounds/song.wav")
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play(loops= -1)
+        else:
+            print("Sounds/song.mp3 not found...ignoring", file=sys.stderr)
+
+    def play_sound(self, sound):
+        #sound
+        if os.path.isfile(sound):
+            pygame.mixer.music.load(sound)
+            pygame.mixer.music.set_volume(0.5)
+            pygame.mixer.music.play()
+        else:
+            print("Sound file not found... ignoring", file=sys.stderr)
+
+    def restart_game(self):
+        self.player.rect.topleft = ((self.width - 56) / 2, self.height - 125)
+        self.hazards.clear()
+        self.score = 0
+        self.h_passed = 0
+        self.run = True
+
     def loop(self):
-        velocidade_background = 10
-        velocidade_hazard = 10
-        hzard = 0
-        h_x = random.randrange(125, 660)
-        h_y = -500
-        h_width = 100
-        h_height = 110
-
-      
-        movL_x = 0
-        movL_y = 0
-        movR_x = 740
-        movR_y = 0
-        self.background = Background()
-        x = (self.width - 56)/2
-        y = self.height - 125
-        self.player = player(x,y)
-        clock = pygame.time.Clock()
-        dt = 16
-
-        self.hazard.append(hazard("Images/satelite.png", h_x, h_y))
-        self.hazard.append(hazard("Images/nave.png", h_x, h_y))
-        self.hazard.append(hazard("Images/cometaVermelho.png", h_x, h_y))
-        self.hazard.append(hazard("Images/meteoros.png", h_x, h_y))
-        self.hazard.append(hazard("Images/buracoNegro.png", h_x, h_y))
-
         while self.run:
-            clock.tick(1000 / dt)
-            self.background.move(self.screen, self.height,movL_x, movL_y, movR_x, movR_y)
-            movL_y = movL_y + velocidade_background
-            movR_y = movR_y + velocidade_background
-
-            if movL_y > 600 and movR_y > 600:
-                movL_y -= 600
-                movR_y -= 600 
-
-            x = x +self.mudar_x   
+            self.clock.tick(60)
             self.handle_events()
-            self.elements_update(dt)
-            self.elements_draw()
-            
-            self.player.draw(self.screen, x, y)
-            if x > 760 - 92 or x < 40 + 5:
-                self.screen.blit(self.render_text_bateulateral, (80,200))
-                pygame.display.update()
-                time.sleep(3)
-                self.loop()
-                self.run = False
-
-            h_y = h_y + velocidade_hazard/4
-            self.hazard[hzard].draw(self.screen, h_x, h_y)
-            h_y = h_y + velocidade_hazard
-            
-            if h_y > self.height:
-                h_y = 0 - h_height
-                h_x = random.randrange(125, 650 - h_height)
-                hzard = random.randint(0, 4) 
-
-
+            if self.check_collision():
+                self.game_over()
+                self.restart_game()
+            self.update_elements()
+            self.draw_elements()
             pygame.display.update()
-            clock.tick(60)  # Limitar a taxa de quadros para 60 FPS
+
 game = Game((800, 600), fullscreen=False)
 game.loop()
+
+
+
+
+
+
+
+
+
+
