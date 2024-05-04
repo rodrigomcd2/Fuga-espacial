@@ -6,3 +6,6 @@ um grupo de prisioneiros escapou, então o objetivos deles é correr o mais dist
 
 ## instalação 🛰️
 instale o pygame no seu editor, após isso, baixe todas as pasta deste repositorio, junte todos numa só pasta e depois rode o main.py
+
+### Observação
+Não altere o caminho dos obejtos, mantenha tudo como está 
